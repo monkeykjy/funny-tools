@@ -4,6 +4,7 @@ import Sidebar from "../component/sidebar";
 import "./globals.css";
 import styles from "./layout.module.css";
 import { Providers } from "./providers";
+import { globals } from "./globals";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
               <Sidebar />
             </div>
             <div className="flex-1">{children}</div>
+            {globals()}
           </main>
         </Providers>
       </body>
