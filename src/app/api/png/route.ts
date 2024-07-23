@@ -5,11 +5,11 @@ import path from "path";
 import archiver from "archiver";
 import Jimp from "jimp";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
 
 interface UploadResponse {
   path: string;
