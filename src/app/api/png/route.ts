@@ -4,6 +4,7 @@ import fs from "fs-extra";
 import path from "path";
 import archiver from "archiver";
 import Jimp from "jimp";
+import { put } from "@vercel/blob";
 
 // export const config = {
 //   api: {
@@ -47,8 +48,8 @@ async function compressDirectory(
 }
 
 // 处理单个图片：裁剪周围的透明像素
-async function processImage(path: string, outputPath: string): Promise<string> {
-  const image = await Jimp.read(path); // 读取图片
+async function processImage(buff: Buffer): Promise<Buffer> {
+  const image = await Jimp.read(buff); // 读取图片
   let minX = image.bitmap.width;
   let minY = image.bitmap.height;
   let maxX = 0;
@@ -73,70 +74,51 @@ async function processImage(path: string, outputPath: string): Promise<string> {
 
   // 如果找到非透明区域，裁剪图片
   if (minX < maxX && minY < maxY) {
-    await image
+    return await image
       .crop(minX, minY, maxX - minX + 1, maxY - minY + 1)
-      .writeAsync(outputPath);
-  }
-  // 没有找到非透明区域，直接拷贝
-  else {
-    fs.copyFileSync(path, outputPath);
+      .getBufferAsync(Jimp.MIME_PNG);
   }
 
-  return outputPath;
+  return image.getBufferAsync(Jimp.MIME_PNG);
 }
 
 export async function POST(req: NextRequest) {
-  const processedDirectories: UploadResponse[] = [];
   const formData = await req.formData();
   const files: FormDataEntryValue[] = formData.getAll("files");
-  const uuid = uuidv4();
-  const dir = path.join(process.cwd(), "public", "uploads", uuid);
-  fs.ensureDirSync(dir);
+
+  const downloadUrls = [];
 
   for (let file of files) {
     file = file as File;
-    const filePath = path.join(dir, file.name);
-    processedDirectories.push({
-      path: filePath,
-      name: file.name,
-    });
+    // 如果不是png图片则下一个
+    if (file.type !== "image/png") {
+      continue;
+    }
+    /**
+     * 上传完毕返回的数据结构
+     * {
+          url: 'https://8mzgpvppmhdosnhr.public.blob.vercel-storage.com/12e534292.14eb8_2-Pmn1N4qhqimgIYreYkP1k6Bm3TXTou.png',
+          downloadUrl: 'https://8mzgpvppmhdosnhr.public.blob.vercel-storage.com/12e534292.14eb8_2-Pmn1N4qhqimgIYreYkP1k6Bm3TXTou.png?download=1',
+          pathname: '12e534292.14eb8_2.png',
+          contentType: 'image/png',
+          contentDisposition: 'inline; filename="12e534292.14eb8_2.png"'
+        }
+     */
 
     // 把file转换成buffer存起来
     const arrayBuff = await file.arrayBuffer();
-    fs.writeFileSync(filePath, Buffer.from(arrayBuff));
-  }
-  const processedDir = path.join(dir, "processed");
+    const processImageBuffer = Buffer.from(arrayBuff);
+    const processedBuffer = await processImage(processImageBuffer);
 
-  await fs.ensureDir(processedDir);
-
-  // 模拟图片处理过程，将上传的文件复制到处理后的目录
-  for (let file of processedDirectories) {
-    // file = file as File;
-    const targetPath = path.join(processedDir, file.name);
-    await processImage(file.path, targetPath);
-  }
-
-  // 创建 zip 文件
-  let zipUrl = `/uploads/${uuid}/processed.zip`;
-  const zipPath = path.join(dir, "processed.zip");
-  try {
-    await compressDirectory(processedDir, zipPath);
-  } catch {
-    zipUrl = "";
+    const blob = await put(file.name, processedBuffer, { access: "public" });
+    console.log("blob upload completed", blob);
+    downloadUrls.push({
+      url: blob.downloadUrl,
+      showName:
+        file.name.length > 20 ? file.name.slice(0, 17) + "..." : file.name,
+      name: file.name,
+    });
   }
 
-  return new NextResponse(
-    JSON.stringify({
-      downloadUrls: processedDirectories.map((file) => {
-        return {
-          // 返回file.name，如果name长度大于20，则截取前17个字符加上...
-          name:
-            file.name.length > 20 ? file.name.slice(0, 17) + "..." : file.name,
-          url: `/uploads/${uuid}/processed/${file.name}`,
-        };
-      }),
-      zipUrl,
-    }),
-    { status: 200 }
-  );
+  return new NextResponse(JSON.stringify({ downloadUrls }), { status: 200 });
 }

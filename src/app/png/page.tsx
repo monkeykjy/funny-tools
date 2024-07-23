@@ -13,6 +13,7 @@ import {
 interface ResultFile {
   name: string;
   url: string;
+  showName: string;
 }
 
 const PngPage = () => {
@@ -59,17 +60,20 @@ const PngPage = () => {
     }
   };
 
-  const handleDownload = async (url: string) => {
+  const handleDownload = async (url: string, fileName: string) => {
     if (!url) return;
     const response = await fetch(url);
     const blob = await response.blob();
+
     const urlObject = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = urlObject;
-    a.download = url.split("/").pop() || "";
+    a.download = fileName; // 使用清理后的文件名
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(urlObject); // 清理URL对象，释放资源
   };
 
   return (
@@ -112,7 +116,7 @@ const PngPage = () => {
               className="border-none bg-background/60 dark:bg-default-100/50 min-w-[512px] max-w-[1240px] m-4"
               shadow="sm"
             >
-              {zipUrl && (
+              {/* {zipUrl && (
                 <CardHeader className="bg-black">
                   <Button
                     onClick={() => handleDownload(zipUrl)}
@@ -122,7 +126,7 @@ const PngPage = () => {
                     下载全部
                   </Button>
                 </CardHeader>
-              )}
+              )} */}
               <ul className="divide-y">
                 {downloadUrls.map((item, index) => (
                   <li key={index}>
@@ -141,13 +145,15 @@ const PngPage = () => {
                         </div>
 
                         <div className="col-span-6">
-                          <p className="text-sm">{item.name}</p>
+                          <p className="text-sm">{item.showName}</p>
                         </div>
 
                         <div className="col-span-4">
                           <div className="flex justify-end items-center">
                             <Button
-                              onClick={() => handleDownload(item.url)}
+                              onClick={() =>
+                                handleDownload(item.url, item.name)
+                              }
                               size="sm"
                               color="primary"
                             >
