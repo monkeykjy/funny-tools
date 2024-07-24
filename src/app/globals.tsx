@@ -9,7 +9,7 @@ export function globals() {
       {/* 百度统计代码 */}
       <Script
         id="baidu_tongji"
-        strategy="afterInteractive"
+        // strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             var _hmt = _hmt || [];
