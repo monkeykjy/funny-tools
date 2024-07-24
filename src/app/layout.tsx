@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head></head>
+      <head>{globals()}</head>
       <body className={inter.className}>
         <Providers>
           <main className={`${styles.main} flex`}>
@@ -28,7 +28,6 @@ export default function RootLayout({
               <Sidebar />
             </div>
             <div className="flex-1">{children}</div>
-            {globals()}
           </main>
         </Providers>
       </body>
