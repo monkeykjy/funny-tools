@@ -20,7 +20,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>{globals()}</head>
+      <head>
+        {globals()}
+        <meta
+          name="google-site-verification"
+          content="dvfyzFzjYXP7eeEEZ0hmtjqEaHx_tmvXtOrmZuoGors"
+        />
+      </head>
       <body className={inter.className}>
         <Providers>
           <main className={`${styles.main} flex`}>
